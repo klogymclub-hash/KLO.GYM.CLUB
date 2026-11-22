@@ -6,7 +6,7 @@
   --ease-suave: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -204,6 +204,7 @@ header {
     letter-spacing: 1.8px;
   }
 }
+
 /* SECCIONES */
 .section {
   padding: 28px 20px;
@@ -547,6 +548,28 @@ header {
   text-align: center;
   font-size: 13px;
   font-weight: 500;
+}
+
+/* BOTÓN AGREGAR AL CARRITO MINIMALISTA NEGRO */
+.btn-add-cart {
+  width: 100%;
+  padding: 13px 18px;
+  background-color: var(--negro);
+  color: var(--blanco);
+  border: 1px solid var(--negro);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-suave), color 0.2s var(--ease-suave), transform 0.18s var(--ease-suave);
+}
+.btn-add-cart:hover {
+  background-color: #1A1A1A;
+  color: var(--blush-beige);
+}
+.btn-add-cart:active {
+  transform: scale(0.98);
 }
 
 /* CARRITO LATERAL */
