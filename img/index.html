@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KLO GYM CLUB - Catálogo Oficial</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR OSCURA -->
+  <header>
+    <button class="icon-btn" onclick="openMenu()" aria-label="Menú">☰</button>
+    <div class="logo-container">
+      <img src="img/klo logo rosado-.png" alt="KLO GYM CLUB" onerror="this.style.display='none'; document.getElementById('fallback-header').style.display='block';">
+      <span id="fallback-header" style="display:none; font-size:18px; letter-spacing:4px; color:var(--blush-beige);"></span>
+    </div>
+    <button class="icon-btn" onclick="openCart()" aria-label="Carrito de compras">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"></circle>
+        <circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </svg>
+      <span id="cart-count" style="font-size:12px; font-weight:500;">0</span>
+    </button>
+  </header>
+
+  <!-- OVERLAY -->
+  <div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+  <!-- MENU DESPLEGABLE OSCURO -->
+  <nav class="drawer" id="menuDrawer">
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <span style="letter-spacing:2px; font-size:11px; color:var(--gris-piedra);">NAVEGACIÓN</span>
+        <button class="icon-btn" onclick="closeAll()">✕</button>
+      </div>
+      <a href="#destacados" onclick="filterCategory('todos'); closeAll();">Todo el Catálogo</a>
+      <a href="#destacados" onclick="filterCategory('shorts'); closeAll();">Shorts</a>
+      <a href="#destacados" onclick="filterCategory('tops'); closeAll();">Tops</a>
+      <a href="#destacados" onclick="filterCategory('leggings'); closeAll();">Leggings</a>
+      <a href="#destacados" onclick="filterCategory('flares'); closeAll();">Flares</a>
+      <a href="#destacados" onclick="filterCategory('enterizos'); closeAll();">Enterizos</a>
+      <a href="#destacados" onclick="filterCategory('chaquetas'); closeAll();">Chaquetas</a>
+      <a href="#destacados" onclick="filterCategory('accesorios'); closeAll();">Accesorios</a>
+      <a href="#destacados" onclick="filterCategory('joggers'); closeAll();">Joggers</a>
+    </div>
+    <p style="font-size:10px; letter-spacing:2px; color:var(--gris-piedra);">KLO GYM CLUB © 2026</p>
+  </nav>
+
+  <!-- BANNER MINIMALISTA CENTRADO -->
+  <section class="hero-wrap">
+    <div class="hero-banner" id="heroBanner">
+      <img
+        src="img/Klo Logo/klo logo rosado.png"
+        alt="KLO GYM CLUB"
+        class="hero-banner-img"
+        onerror="this.style.display='none'; document.getElementById('heroBanner').classList.add('banner-missing');"
+      >
+      <div class="hero-banner-fallback">
+        Revisa que <strong>img/banner.png</strong> exista en tu carpeta <strong>img/</strong>
+      </div>
+      <a href="#destacados" class="hero-cta-link">
+        <button type="button" class="btn-banner-white">Ver Catálogo</button>
+      </a>
+    </div>
+  </section>
+
+  <!-- CATEGORÍAS -->
+  <section class="section">
+    <h3 class="section-title">Categorías</h3>
+    <div class="cat-grid">
+      <div class="cat-box" data-category="shorts" onclick="filterCategory('shorts', this)">
+        <img src="img/12.png" alt="Shorts" loading="lazy">
+        <span>Shorts</span>
+      </div>
+      <div class="cat-box" data-category="tops" onclick="filterCategory('tops', this)">
+        <img src="img/186.png" alt="Tops" loading="lazy">
+        <span>Tops</span>
+      </div>
+      <div class="cat-box" data-category="leggings" onclick="filterCategory('leggings', this)">
+        <img src="img/9.png" alt="Leggings" loading="lazy">
+        <span>Leggings</span>
+      </div>
+      <div class="cat-box" data-category="flares" onclick="filterCategory('flares', this)">
+        <img src="img/201.png" alt="Flares" loading="lazy">
+        <span>Flares</span>
+      </div>
+      <div class="cat-box" data-category="enterizos" onclick="filterCategory('enterizos', this)">
+        <img src="img/355.png" alt="Enterizos" loading="lazy">
+        <span>Enterizos</span>
+      </div>
+      <div class="cat-box" data-category="chaquetas" onclick="filterCategory('chaquetas', this)">
+        <img src="img/29.png" alt="Chaquetas" loading="lazy">
+        <span>Chaquetas</span>
+      </div>
+      <div class="cat-box" data-category="accesorios" onclick="filterCategory('accesorios', this)">
+        <img src="img/269.png" alt="Accesorios" loading="lazy">
+        <span>Accesorios</span>
+      </div>
+      <div class="cat-box" data-category="joggers" onclick="filterCategory('joggers', this)">
+        <img src="img/263.png" alt="Joggers" loading="lazy">
+        <span>Joggers</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATÁLOGO (RENDERIZADO DINÁMICO DESDE products.js + app.js) -->
+  <section class="section" id="destacados">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h3 class="section-title" id="catalogTitle" style="margin-bottom:0;">Catálogo</h3>
+      <button onclick="filterCategory('todos')" style="background:none; border:none; font-size:11px; letter-spacing:1.5px; text-decoration:underline; cursor:pointer;">Ver todo</button>
+    </div>
+
+    <div class="product-grid" id="productGrid"></div>
+  </section>
+
+  <!-- MODAL DETALLE DEL PRODUCTO -->
+  <div class="product-modal" id="productModal">
+    <button class="modal-close" onclick="closeAll()">✕</button>
+    <div class="modal-body">
+      <div class="modal-gallery">
+        <img id="modalImg" src="" alt="Vista del producto">
+        <div class="gallery-thumbs" id="modalThumbs"></div>
+      </div>
+
+      <div class="modal-details">
+        <h2 id="modalTitle">Nombre del Producto</h2>
+        <div class="modal-price" id="modalPrice">$0.00</div>
+        <p class="modal-desc" id="modalDesc">Descripción del producto.</p>
+        <div class="modal-meta"><strong>Color:</strong> <span id="modalColor"></span></div>
+
+        <div style="font-size:11px; letter-spacing:2px; margin-top:8px; margin-bottom:8px; text-transform:uppercase;">Elige tu talla:</div>
+        <div class="size-grid" id="modalSizes">
+          <button type="button" class="size-btn" onclick="selectSize(this, 'XS')">XS</button>
+          <button type="button" class="size-btn selected" onclick="selectSize(this, 'S')">S</button>
+          <button type="button" class="size-btn" onclick="selectSize(this, 'M')">M</button>
+          <button type="button" class="size-btn" onclick="selectSize(this, 'L')">L</button>
+          <button type="button" class="size-btn" onclick="selectSize(this, 'XL')">XL</button>
+        </div>
+
+        <div class="size-stock-status">
+          <span class="stock-badge" id="modalStockBadge">Entrega inmediata</span>
+        </div>
+
+        <div class="qty-row">
+          <span style="font-size:11px; letter-spacing:2px; text-transform:uppercase;">Cantidad:</span>
+          <div class="qty-box">
+            <button type="button" class="qty-btn" onclick="changeModalQty(-1)">−</button>
+            <span class="qty-val" id="modalQty">1</span>
+            <button type="button" class="qty-btn" onclick="changeModalQty(1)">+</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%;" onclick="addCurrentProductToCart()">Agregar al Carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARRITO LATERAL CON PEDIDO POR INSTAGRAM -->
+  <aside class="cart-drawer" id="cartDrawer">
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:12px;">
+        <strong style="letter-spacing:2px; font-size:12px;">TU CARRITO</strong>
+        <button class="icon-btn" onclick="closeAll()" style="color:var(--negro);">✕</button>
+      </div>
+      <div class="cart-items" id="cartItems">
+        <p style="font-size:12px; color:#777; margin-top:20px;">Tu carrito está vacío.</p>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--gris-piedra); padding-top:16px;">
+      <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px;">
+        <span>TOTAL</span>
+        <strong id="cartTotal">$0.00</strong>
+      </div>
+
+      <button type="button" class="btn-instagram" onclick="orderViaInstagram()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+        Pedir por Instagram
+      </button>
+    </div>
+  </aside>
+
+  <!-- VENTANA INTERMEDIA EN 2 PASOS -->
+  <div class="step-modal" id="stepModal">
+    <button class="modal-close" onclick="closeStepModal()">✕</button>
+    <div class="step-label">Paso 1: Copia tu pedido</div>
+    <div class="step-box" id="stepOrderText"></div>
+
+    <button type="button" class="btn-step-copy" id="btnStepCopy" onclick="copiarPasoUno()">
+      Copiar pedido
+    </button>
+    <div class="step-status" id="stepStatus">
+      Toca <strong>Copiar pedido</strong> y luego ve al chat de KLO para pegarlo.
+    </div>
+
+    <div class="step-label">Paso 2: Abre el chat y pégalo</div>
+    <button type="button" class="btn-instagram" onclick="irAlChatPasoDos()">
+      Abrir chat de KLO GYM CLUB
+    </button>
+  </div>
+
+  <script src="products.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
