@@ -46,6 +46,7 @@ header {
   align-items: center;
   gap: 6px;
   transition: transform 0.2s var(--ease-suave);
+  -webkit-tap-highlight-color: transparent;
 }
 .icon-btn:active {
   transform: scale(0.94);
@@ -165,6 +166,9 @@ header {
 }
 
 .btn-banner-white {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   background: var(--blanco);
   color: var(--negro);
   border: 1px solid var(--blanco);
@@ -242,6 +246,7 @@ header {
   cursor: pointer;
   border: 1px solid transparent;
   transition: border-color 0.22s var(--ease-suave), transform 0.22s var(--ease-suave);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .cat-box img {
@@ -310,6 +315,7 @@ header {
   flex-direction: column;
   cursor: pointer;
   transition: transform 0.25s var(--ease-suave);
+  -webkit-tap-highlight-color: transparent;
 }
 .product-card:hover {
   transform: translateY(-3px);
@@ -353,6 +359,9 @@ header {
 }
 
 .btn-view {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 100%;
   padding: 10px;
   background: var(--blanco);
@@ -414,12 +423,16 @@ header {
 }
 
 .modal-close {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   position: absolute;
   top: 12px;
   right: 12px;
   width: 34px;
   height: 34px;
   background: var(--blanco);
+  color: var(--negro);
   border: 1px solid var(--negro);
   font-size: 16px;
   cursor: pointer;
@@ -509,10 +522,14 @@ header {
   flex-wrap: wrap;
 }
 .size-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   min-width: 42px;
   height: 40px;
   border: 1px solid var(--negro);
   background: var(--blanco);
+  color: var(--negro);
   font-size: 11px;
   letter-spacing: 1px;
   cursor: pointer;
@@ -536,9 +553,13 @@ header {
   border: 1px solid var(--negro);
 }
 .qty-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 34px;
   height: 34px;
   background: var(--blanco);
+  color: var(--negro);
   border: none;
   font-size: 16px;
   cursor: pointer;
@@ -552,11 +573,15 @@ header {
 
 /* BOTÓN AGREGAR AL CARRITO MINIMALISTA NEGRO */
 .btn-add-cart {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 100%;
   padding: 13px 18px;
   background-color: var(--negro);
   color: var(--blanco);
   border: 1px solid var(--negro);
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 2px;
@@ -611,9 +636,13 @@ header {
   margin-top: 6px;
 }
 .cart-qty-controls button {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 24px;
   height: 24px;
   background: var(--blanco);
+  color: var(--negro);
   border: none;
   font-size: 13px;
   cursor: pointer;
@@ -625,11 +654,15 @@ header {
 }
 
 .btn-instagram {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 100%;
   padding: 14px;
   background: var(--negro);
   color: var(--blush-beige);
   border: 1px solid var(--negro);
+  border-radius: 0;
   font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -692,11 +725,15 @@ header {
 }
 
 .btn-step-copy {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   width: 100%;
   padding: 13px;
   background: var(--blush-beige);
   color: var(--negro);
   border: 1px solid var(--negro);
+  border-radius: 0;
   font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
