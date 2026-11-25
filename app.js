@@ -1,5 +1,5 @@
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyRbgd97mt0QWbdhq-33tBBs5TeIaLq9n_fttTUle7A79-sYweTqOa3VSTWHMEYmEvV/exec";
-const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v3";
+const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v4";
 
 const FALLBACK_PRODUCTS = typeof products !== "undefined" && Array.isArray(products) ? products : [];
 
@@ -7,6 +7,7 @@ let currentCategoryFilter = "todos";
 let currentSizeFilter = "todas";
 let bannerImages = ["img/Klo Logo/klo logo rosado.png"];
 let bannerSlideIndex = 0;
+let latestRemoteConfig = {};
 
 function readCachedSheetData() {
   try {
@@ -203,10 +204,78 @@ function normalizeSheetItem(raw) {
   };
 }
 
+function syncDynamicOfferCategory() {
+  const offerProducts = Array.isArray(catalogProducts)
+    ? catalogProducts.filter(p => Boolean(p && p.isOffer))
+    : [];
+  const hasOffers = offerProducts.length > 0;
+
+  const catGrid = document.querySelector(".cat-grid");
+  const menuList = document.querySelector("#menuDrawer > div");
+
+  if (hasOffers) {
+    const customOfferImg = normalizeImageUrl(latestRemoteConfig.cat_oferta || latestRemoteConfig.categoria_oferta);
+    const offerThumb = customOfferImg || (offerProducts[0].images && offerProducts[0].images[0]) || "img/211.png";
+
+    if (catGrid) {
+      let offerBox = catGrid.querySelector('.cat-box[data-category="oferta"]');
+      if (!offerBox) {
+        offerBox = document.createElement("div");
+        offerBox.className = "cat-box";
+        offerBox.dataset.category = "oferta";
+        offerBox.onclick = function () {
+          filterCategory("oferta", this);
+        };
+        offerBox.innerHTML = `<img src="${offerThumb}" alt="Ofertas" loading="lazy"><span>Ofertas</span>`;
+        catGrid.prepend(offerBox);
+      } else {
+        const imgEl = offerBox.querySelector("img");
+        if (imgEl && offerThumb) imgEl.src = offerThumb;
+      }
+      offerBox.classList.toggle("active-cat", currentCategoryFilter === "oferta");
+    }
+
+    if (menuList) {
+      let offerLink = menuList.querySelector('a[data-nav-category="oferta"]');
+      if (!offerLink) {
+        offerLink = document.createElement("a");
+        offerLink.href = "#destacados";
+        offerLink.dataset.navCategory = "oferta";
+        offerLink.textContent = "Ofertas";
+        offerLink.onclick = function () {
+          filterCategory("oferta");
+          closeAll();
+        };
+        const firstNavLink = menuList.querySelector("a");
+        if (firstNavLink && firstNavLink.nextSibling) {
+          menuList.insertBefore(offerLink, firstNavLink.nextSibling);
+        } else {
+          menuList.appendChild(offerLink);
+        }
+      }
+    }
+  } else {
+    if (catGrid) {
+      const offerBox = catGrid.querySelector('.cat-box[data-category="oferta"]');
+      if (offerBox) offerBox.remove();
+    }
+    if (menuList) {
+      const offerLink = menuList.querySelector('a[data-nav-category="oferta"]');
+      if (offerLink) offerLink.remove();
+    }
+    if (currentCategoryFilter === "oferta") {
+      currentCategoryFilter = "todos";
+      const title = document.getElementById("catalogTitle");
+      if (title) title.textContent = "Catálogo";
+    }
+  }
+}
+
 function applyRemoteMediaConfig(config) {
   if (!config || typeof config !== "object") return;
+  latestRemoteConfig = config;
 
-  const categories = ["shorts", "tops", "leggings", "flares", "enterizos", "chaquetas", "accesorios", "joggers"];
+  const categories = ["oferta", "shorts", "tops", "leggings", "flares", "enterizos", "chaquetas", "accesorios", "joggers"];
   categories.forEach(cat => {
     const rawUrl = config[`cat_${cat}`] || config[`categoria_${cat}`];
     const cleanUrl = normalizeImageUrl(rawUrl);
@@ -242,16 +311,21 @@ function applyRemoteMediaConfig(config) {
 
 const initialCached = readCachedSheetData();
 let catalogProducts = initialCached ? initialCached.items.map(normalizeSheetItem).filter(Boolean) : [...FALLBACK_PRODUCTS];
+if (initialCached && initialCached.config) {
+  latestRemoteConfig = initialCached.config;
+}
 
 async function loadProductsFromSheet() {
   if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("PEGA_AQUI_TU_URL")) {
     catalogProducts = [...FALLBACK_PRODUCTS];
+    syncDynamicOfferCategory();
     renderCatalog(currentCategoryFilter, currentSizeFilter);
     return;
   }
 
   try {
-    const res = await fetch(GOOGLE_SHEETS_API_URL, { cache: "no-store" });
+    const sep = GOOGLE_SHEETS_API_URL.includes("?") ? "&" : "?";
+    const res = await fetch(`${GOOGLE_SHEETS_API_URL}${sep}t=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) throw new Error("Error HTTP " + res.status);
 
     const data = await res.json();
@@ -272,15 +346,20 @@ async function loadProductsFromSheet() {
       writeCachedSheetData([], remoteConfig);
     }
 
+    latestRemoteConfig = remoteConfig;
+    syncDynamicOfferCategory();
     applyRemoteMediaConfig(remoteConfig);
   } catch (err) {
     console.warn("No se pudo cargar desde Google Sheets, usando caché o respaldo local:", err);
     const cached = readCachedSheetData();
     if (cached && cached.items.length) {
       catalogProducts = cached.items.map(normalizeSheetItem).filter(Boolean);
-      applyRemoteMediaConfig(cached.config);
+      latestRemoteConfig = cached.config || {};
+      syncDynamicOfferCategory();
+      applyRemoteMediaConfig(latestRemoteConfig);
     } else {
       catalogProducts = [...FALLBACK_PRODUCTS];
+      syncDynamicOfferCategory();
     }
   }
 
@@ -379,9 +458,17 @@ function renderCatalog(filterCat = currentCategoryFilter, sizeFilter = currentSi
 
   const list = catalogProducts
     .map((product, index) => ({ product, index }))
-    .filter(({ product }) => filterCat === "todos" || product.category === filterCat)
+    .filter(({ product }) => {
+      if (filterCat === "todos") return true;
+      if (filterCat === "oferta") return Boolean(product.isOffer);
+      return product.category === filterCat;
+    })
     .filter(({ product }) => matchesSizeFilter(product, sizeFilter))
     .sort((a, b) => {
+      const offerRankA = a.product.isOffer ? 0 : 1;
+      const offerRankB = b.product.isOffer ? 0 : 1;
+      if (offerRankA !== offerRankB) return offerRankA - offerRankB;
+
       const rankA = getStockRankForFilter(a.product, sizeFilter);
       const rankB = getStockRankForFilter(b.product, sizeFilter);
       if (rankA !== rankB) return rankA - rankB;
@@ -482,7 +569,12 @@ function filterCategory(category, boxEl) {
 
   const title = document.getElementById("catalogTitle");
   if (title) {
-    title.textContent = currentCategoryFilter === "todos" ? "Catálogo" : currentCategoryFilter.toUpperCase();
+    title.textContent =
+      currentCategoryFilter === "todos"
+        ? "Catálogo"
+        : currentCategoryFilter === "oferta"
+          ? "OFERTAS"
+          : currentCategoryFilter.toUpperCase();
   }
 }
 
@@ -624,9 +716,17 @@ function setModalPhoto(photoIdx) {
   activePhotoIndex = photoIdx;
   const p = catalogProducts[activeProductIndex];
   const imgEl = document.getElementById("modalImg");
-  const nextSrc = p.images[photoIdx] || p.images[0] || "";
+  const nextSrc = (p && p.images && (p.images[photoIdx] || p.images[0])) || "";
+  if (!imgEl || !nextSrc) return;
+
   if (imgEl.getAttribute("src") !== nextSrc) {
-    imgEl.src = nextSrc;
+    imgEl.classList.add("photo-switching");
+    setTimeout(() => {
+      imgEl.src = nextSrc;
+      requestAnimationFrame(() => {
+        imgEl.classList.remove("photo-switching");
+      });
+    }, 110);
   }
 
   document.querySelectorAll("#modalThumbs .thumb-dot").forEach((dot, idx) => {
@@ -851,6 +951,7 @@ function orderViaInstagram() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  syncDynamicOfferCategory();
   renderCatalog("todos", "todas");
   loadProductsFromSheet();
 });
