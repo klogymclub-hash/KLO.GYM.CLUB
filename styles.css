@@ -295,7 +295,50 @@ header {
   box-shadow: 0 0 0 1px var(--negro);
 }
 
-/* TARJETAS DE PRODUCTOS (SIN STOCK AFUERA) */
+/* FILTRO DE TALLAS EN PANTALLA PRINCIPAL */
+.size-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--gris-piedra);
+}
+
+.size-filter-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.size-filter-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 38px;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--blanco);
+  color: var(--negro);
+  border: 1px solid var(--negro);
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.18s var(--ease-suave), color 0.18s var(--ease-suave);
+}
+
+.size-filter-btn.active {
+  background: var(--negro);
+  color: var(--blanco);
+}
+
+/* TARJETAS DE PRODUCTOS */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -341,6 +384,21 @@ header {
   transform: scale(1.03);
 }
 
+.offer-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  background: var(--negro);
+  color: var(--blush-beige);
+  border: 1px solid var(--negro);
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
 .product-title {
   font-size: 13px;
   font-weight: 500;
@@ -356,6 +414,21 @@ header {
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.price-old {
+  font-size: 11px;
+  color: #777;
+  text-decoration: line-through;
+  font-weight: 400;
+}
+.price-offer {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--negro);
 }
 
 .btn-view {
@@ -401,7 +474,7 @@ header {
   border: 1px solid #C9B5AA;
 }
 
-/* MODAL DETALLE DEL PRODUCTO (SIN ANIMACIÓN DE REBOTE NI SALTO) */
+/* MODAL DETALLE DEL PRODUCTO */
 .product-modal {
   position: fixed;
   top: 50%;
@@ -447,7 +520,7 @@ header {
   .modal-body { grid-template-columns: 1fr 1fr; }
 }
 
-/* CARRUSEL DENTRO DEL MODAL SIN TRANSICIÓN FEA EN LA IMAGEN */
+/* CARRUSEL DENTRO DEL MODAL */
 .modal-gallery {
   position: relative;
   background: var(--gris-piedra);
@@ -499,6 +572,16 @@ header {
 .modal-price {
   font-size: 18px;
   margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.modal-price .price-old {
+  font-size: 14px;
+}
+.modal-price .price-offer {
+  font-size: 18px;
 }
 .modal-desc {
   font-size: 13px;
@@ -629,6 +712,11 @@ header {
   animation: fadeSuave 0.25s var(--ease-suave);
 }
 
+@keyframes fadeSuave {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .cart-qty-controls {
   display: inline-flex;
   align-items: center;
@@ -677,7 +765,7 @@ header {
   background: #1A1A1A;
 }
 
-/* MODAL PASO INTERMEDIO DE 2 PASOS (ENTRADA Y SALIDA SUAVES) */
+/* MODAL PASO INTERMEDIO DE 2 PASOS */
 .step-modal {
   position: fixed;
   top: 50%;
