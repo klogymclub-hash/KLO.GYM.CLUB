@@ -1,29 +1,37 @@
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyRbgd97mt0QWbdhq-33tBBs5TeIaLq9n_fttTUle7A79-sYweTqOa3VSTWHMEYmEvV/exec";
-const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v1";
+const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v3";
 
 const FALLBACK_PRODUCTS = typeof products !== "undefined" && Array.isArray(products) ? products : [];
 
-function readCachedSheetItems() {
+let currentCategoryFilter = "todos";
+let currentSizeFilter = "todas";
+let bannerImages = ["img/Klo Logo/klo logo rosado.png"];
+let bannerSlideIndex = 0;
+
+function readCachedSheetData() {
   try {
     const raw = localStorage.getItem(SHEETS_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : null;
+    if (Array.isArray(parsed)) {
+      return { items: parsed, config: {} };
+    }
+    if (parsed && Array.isArray(parsed.items)) {
+      return { items: parsed.items, config: parsed.config || {} };
+    }
+    return null;
   } catch (e) {
     return null;
   }
 }
 
-function writeCachedSheetItems(items) {
+function writeCachedSheetData(items, config = {}) {
   try {
-    localStorage.setItem(SHEETS_CACHE_KEY, JSON.stringify(items));
+    localStorage.setItem(SHEETS_CACHE_KEY, JSON.stringify({ items, config }));
   } catch (e) {
     // Ignorar si el almacenamiento del navegador está bloqueado o lleno
   }
 }
-
-const initialCached = readCachedSheetItems();
-let catalogProducts = initialCached ? [...initialCached] : [...FALLBACK_PRODUCTS];
 
 function normalizeImageUrl(url) {
   const clean = String(url || "").trim();
@@ -72,14 +80,34 @@ function getRawDisponibilidad(raw) {
   return matchedKey ? raw[matchedKey] : "";
 }
 
+function getRawOfferPrice(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const offerKeys = ["oferta", "offer", "offer_price", "precio_oferta", "promo", "promocion", "promoción", "descuento"];
+  for (const key of Object.keys(raw)) {
+    const cleanKey = String(key || "").trim().toLowerCase();
+    if (offerKeys.includes(cleanKey)) {
+      const cleanedNum = String(raw[key] ?? "").replace(/[^0-9.,]/g, "").replace(",", ".");
+      const num = Number(cleanedNum);
+      if (Number.isFinite(num) && num > 0) {
+        return num;
+      }
+    }
+  }
+  return null;
+}
+
 function normalizeSheetItem(raw) {
   const name = String(raw.name || "").trim();
   if (!name) return null;
 
   const color = String(raw.color || "").trim();
   const category = String(raw.category || "todos").trim().toLowerCase();
-  const priceNum = Number(raw.price);
+  const priceNum = Number(String(raw.price ?? 0).replace(/[^0-9.,]/g, "").replace(",", "."));
   const price = Number.isFinite(priceNum) ? priceNum : 0;
+  const offerRaw = getRawOfferPrice(raw);
+  const offerPrice = offerRaw !== null && offerRaw < price ? offerRaw : null;
+  const isOffer = offerPrice !== null;
+  const effectivePrice = isOffer ? offerPrice : price;
   const description = String(raw.description || "").trim();
 
   const rawImages = Array.isArray(raw.images)
@@ -90,12 +118,10 @@ function normalizeSheetItem(raw) {
   const sizeCols = ["XS", "S", "M", "L", "XL", "Unitalla"];
   const stock = {};
   const sizeStock = {};
-  const parsedMap = {};
 
   for (const sz of sizeCols) {
     const rawVal = raw.stock && raw.stock[sz] !== undefined ? raw.stock[sz] : raw[sz];
     const parsed = parseCellValue(rawVal);
-    parsedMap[sz] = parsed;
     stock[sz] = parsed.qty;
     sizeStock[sz] =
       raw.sizeStock && (raw.sizeStock[sz] === "entrega_inmediata" || raw.sizeStock[sz] === "bajo_pedido")
@@ -163,6 +189,9 @@ function normalizeSheetItem(raw) {
     color,
     category,
     price,
+    offerPrice,
+    effectivePrice,
+    isOffer,
     description,
     images: images.length ? images : ["img/placeholder.png"],
     stock,
@@ -174,10 +203,50 @@ function normalizeSheetItem(raw) {
   };
 }
 
+function applyRemoteMediaConfig(config) {
+  if (!config || typeof config !== "object") return;
+
+  const categories = ["shorts", "tops", "leggings", "flares", "enterizos", "chaquetas", "accesorios", "joggers"];
+  categories.forEach(cat => {
+    const rawUrl = config[`cat_${cat}`] || config[`categoria_${cat}`];
+    const cleanUrl = normalizeImageUrl(rawUrl);
+    if (!cleanUrl) return;
+    const boxImg = document.querySelector(`.cat-box[data-category="${cat}"] img`);
+    if (boxImg) {
+      boxImg.src = cleanUrl;
+    }
+  });
+
+  const bannerCandidates = [
+    config.banner_imagen,
+    config.banner,
+    config.banner_1,
+    config.banner_2,
+    config.banner_3
+  ]
+    .map(normalizeImageUrl)
+    .filter(Boolean);
+
+  if (bannerCandidates.length > 0) {
+    bannerImages = bannerCandidates;
+    bannerSlideIndex = 0;
+    const heroImg = document.getElementById("heroBannerImg");
+    const heroBanner = document.getElementById("heroBanner");
+    if (heroImg) {
+      if (heroBanner) heroBanner.classList.remove("banner-missing");
+      heroImg.style.display = "block";
+      heroImg.src = bannerImages[0];
+    }
+  }
+}
+
+const initialCached = readCachedSheetData();
+let catalogProducts = initialCached ? initialCached.items.map(normalizeSheetItem).filter(Boolean) : [...FALLBACK_PRODUCTS];
+
 async function loadProductsFromSheet() {
   if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("PEGA_AQUI_TU_URL")) {
     catalogProducts = [...FALLBACK_PRODUCTS];
-    renderCatalog("todos");
+    renderCatalog(currentCategoryFilter, currentSizeFilter);
     return;
   }
 
@@ -191,25 +260,31 @@ async function loadProductsFromSheet() {
     }
 
     const sheetItems = data.items.map(normalizeSheetItem).filter(Boolean);
+    const remoteConfig = data.config && typeof data.config === "object" ? data.config : {};
 
     if (sheetItems.length > 0) {
       catalogProducts = sheetItems;
-      writeCachedSheetItems(sheetItems);
+      writeCachedSheetData(sheetItems, remoteConfig);
     } else if (FALLBACK_PRODUCTS.length > 0) {
       catalogProducts = [...FALLBACK_PRODUCTS];
     } else {
       catalogProducts = [];
-      writeCachedSheetItems([]);
+      writeCachedSheetData([], remoteConfig);
     }
+
+    applyRemoteMediaConfig(remoteConfig);
   } catch (err) {
     console.warn("No se pudo cargar desde Google Sheets, usando caché o respaldo local:", err);
-    const cached = readCachedSheetItems();
-    catalogProducts = cached ? [...cached] : [...FALLBACK_PRODUCTS];
+    const cached = readCachedSheetData();
+    if (cached && cached.items.length) {
+      catalogProducts = cached.items.map(normalizeSheetItem).filter(Boolean);
+      applyRemoteMediaConfig(cached.config);
+    } else {
+      catalogProducts = [...FALLBACK_PRODUCTS];
+    }
   }
 
-  const activeCatEl = document.querySelector(".cat-box.active-cat");
-  const currentCat = activeCatEl && activeCatEl.dataset.category ? activeCatEl.dataset.category : "todos";
-  renderCatalog(currentCat);
+  renderCatalog(currentCategoryFilter, currentSizeFilter);
 }
 
 function isNoSizeProduct(product) {
@@ -234,12 +309,63 @@ function getStockTypeForSize(product, size) {
   return product.sizeStock[size] === "entrega_inmediata" ? "entrega_inmediata" : "bajo_pedido";
 }
 
+function hasAnyImmediateStock(product) {
+  if (!product) return false;
+  if (isNoSizeProduct(product)) {
+    return (product.noSizeStockType || "bajo_pedido") === "entrega_inmediata";
+  }
+  if (isUnitallaProduct(product)) {
+    return getStockTypeForSize(product, "Unitalla") === "entrega_inmediata";
+  }
+  return ["XS", "S", "M", "L", "XL"].some(sz => getStockTypeForSize(product, sz) === "entrega_inmediata");
+}
+
+function matchesSizeFilter(product, sizeFilter) {
+  if (!sizeFilter || sizeFilter === "todas") return true;
+  if (isNoSizeProduct(product)) return true;
+  if (isUnitallaProduct(product)) return sizeFilter === "M" || sizeFilter === "S";
+  return Object.prototype.hasOwnProperty.call(product.sizeStock || {}, sizeFilter);
+}
+
+function getStockRankForFilter(product, sizeFilter) {
+  if (!sizeFilter || sizeFilter === "todas") {
+    return hasAnyImmediateStock(product) ? 0 : 1;
+  }
+  if (isNoSizeProduct(product)) {
+    return (product.noSizeStockType || "bajo_pedido") === "entrega_inmediata" ? 0 : 1;
+  }
+  if (isUnitallaProduct(product)) {
+    return getStockTypeForSize(product, "Unitalla") === "entrega_inmediata" ? 0 : 1;
+  }
+  return getStockTypeForSize(product, sizeFilter) === "entrega_inmediata" ? 0 : 1;
+}
+
 function getStockLabel(stockType) {
   return stockType === "entrega_inmediata" ? "Entrega inmediata" : "Bajo pedido";
 }
 
+function getEffectivePrice(product) {
+  if (!product) return 0;
+  if (typeof product.effectivePrice === "number") return product.effectivePrice;
+  if (typeof product.offerPrice === "number" && product.offerPrice > 0 && product.offerPrice < product.price) {
+    return product.offerPrice;
+  }
+  return Number(product.price) || 0;
+}
+
+function formatPriceHtml(product, isModal = false) {
+  const normalPrice = Number(product.price) || 0;
+  const offerPrice = typeof product.offerPrice === "number" && product.offerPrice > 0 && product.offerPrice < normalPrice
+    ? product.offerPrice
+    : null;
+
+  if (offerPrice !== null) {
+    return `<span class="price-old">$${normalPrice.toFixed(2)}</span><span class="price-offer">$${offerPrice.toFixed(2)}</span>`;
+  }
+  return isModal ? `$${normalPrice.toFixed(2)}` : `$${normalPrice.toFixed(2)}`;
+}
+
 let cart = [];
-let currentSlide = 0;
 let activeProductIndex = 0;
 let activePhotoIndex = 0;
 let selectedSize = "S";
@@ -247,30 +373,41 @@ let modalQuantity = 1;
 let modalCarouselTimer = null;
 let pendingOrderMessage = "";
 
-function renderCatalog(filterCat = "todos") {
+function renderCatalog(filterCat = currentCategoryFilter, sizeFilter = currentSizeFilter) {
   const grid = document.getElementById("productGrid");
   if (!grid || !Array.isArray(catalogProducts)) return;
 
   const list = catalogProducts
     .map((product, index) => ({ product, index }))
-    .filter(({ product }) => filterCat === "todos" || product.category === filterCat);
+    .filter(({ product }) => filterCat === "todos" || product.category === filterCat)
+    .filter(({ product }) => matchesSizeFilter(product, sizeFilter))
+    .sort((a, b) => {
+      const rankA = getStockRankForFilter(a.product, sizeFilter);
+      const rankB = getStockRankForFilter(b.product, sizeFilter);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.index - b.index;
+    });
 
   if (list.length === 0) {
-    grid.innerHTML = '<p style="font-size:12px; color:#666; grid-column:1 / -1; text-align:center;">No hay prendas en esta categoría por el momento.</p>';
+    grid.innerHTML = '<p style="font-size:12px; color:#666; grid-column:1 / -1; text-align:center;">No hay prendas que coincidan con este filtro por el momento.</p>';
     return;
   }
 
-  grid.innerHTML = list.map(({ product, index }) => `
-    <div class="product-card" data-category="${product.category}" onclick="openProductModal(${index})">
-      <div class="product-img-wrap">
-        <img src="${product.images[0]}" alt="${product.name}" loading="lazy">
+  grid.innerHTML = list.map(({ product, index }) => {
+    const badgeHtml = product.isOffer ? `<span class="offer-badge">Oferta</span>` : "";
+    return `
+      <div class="product-card" data-category="${product.category}" onclick="openProductModal(${index})">
+        <div class="product-img-wrap">
+          ${badgeHtml}
+          <img src="${product.images[0]}" alt="${product.name}" loading="lazy">
+        </div>
+        <div class="product-title">${product.name}</div>
+        <div class="product-color">Color: ${product.color}</div>
+        <div class="product-price">${formatPriceHtml(product, false)}</div>
+        <button type="button" class="btn-view">${isNoSizeProduct(product) ? "Ver Producto" : "Seleccionar Talla"}</button>
       </div>
-      <div class="product-title">${product.name}</div>
-      <div class="product-color">Color: ${product.color}</div>
-      <div class="product-price">$${Number(product.price).toFixed(2)}</div>
-      <button type="button" class="btn-view">${isNoSizeProduct(product) ? "Ver Producto" : "Seleccionar Talla"}</button>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 function openMenu() {
@@ -322,30 +459,56 @@ function closeAll() {
   document.getElementById("overlay").classList.remove("active");
 }
 
-function showSlide(index) {
-  const slides = document.querySelectorAll(".slide");
-  const dots = document.querySelectorAll(".dot");
-  if (!slides.length || !dots.length) return;
-  slides.forEach(s => s.classList.remove("active"));
-  dots.forEach(d => d.classList.remove("active"));
-  slides[index].classList.add("active");
-  dots[index].classList.add("active");
-  currentSlide = index;
-}
-
 setInterval(() => {
-  currentSlide = (currentSlide + 1) % 2;
-  showSlide(currentSlide);
+  if (!Array.isArray(bannerImages) || bannerImages.length < 2) return;
+  const heroImg = document.getElementById("heroBannerImg");
+  if (!heroImg) return;
+  bannerSlideIndex = (bannerSlideIndex + 1) % bannerImages.length;
+  heroImg.style.display = "block";
+  heroImg.src = bannerImages[bannerSlideIndex];
 }, 5000);
 
 function filterCategory(category, boxEl) {
+  currentCategoryFilter = category || "todos";
   document.querySelectorAll(".cat-box").forEach(b => b.classList.remove("active-cat"));
-  if (boxEl) boxEl.classList.add("active-cat");
+  if (boxEl) {
+    boxEl.classList.add("active-cat");
+  } else if (currentCategoryFilter !== "todos") {
+    const matchingBox = document.querySelector(`.cat-box[data-category="${currentCategoryFilter}"]`);
+    if (matchingBox) matchingBox.classList.add("active-cat");
+  }
 
-  renderCatalog(category);
+  renderCatalog(currentCategoryFilter, currentSizeFilter);
 
   const title = document.getElementById("catalogTitle");
-  title.textContent = category === "todos" ? "Catálogo" : category.toUpperCase();
+  if (title) {
+    title.textContent = currentCategoryFilter === "todos" ? "Catálogo" : currentCategoryFilter.toUpperCase();
+  }
+}
+
+function filterBySize(size, btnEl) {
+  currentSizeFilter = size || "todas";
+  document.querySelectorAll("#sizeFilterBar .size-filter-btn").forEach(b => b.classList.remove("active"));
+  if (btnEl) {
+    btnEl.classList.add("active");
+  } else {
+    const matchingBtn = document.querySelector(`#sizeFilterBar .size-filter-btn[data-size="${currentSizeFilter}"]`);
+    if (matchingBtn) matchingBtn.classList.add("active");
+  }
+
+  renderCatalog(currentCategoryFilter, currentSizeFilter);
+}
+
+function resetFilters() {
+  currentCategoryFilter = "todos";
+  currentSizeFilter = "todas";
+  document.querySelectorAll(".cat-box").forEach(b => b.classList.remove("active-cat"));
+  document.querySelectorAll("#sizeFilterBar .size-filter-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.size === "todas");
+  });
+  const title = document.getElementById("catalogTitle");
+  if (title) title.textContent = "Catálogo";
+  renderCatalog("todos", "todas");
 }
 
 function setSizeSectionVisible(visible) {
@@ -389,7 +552,10 @@ function renderModalSizes(product) {
 
   setSizeSectionVisible(true);
   const listToRender = ["XS", "S", "M", "L", "XL"];
-  selectedSize = "S";
+  selectedSize = (currentSizeFilter && currentSizeFilter !== "todas" && listToRender.includes(currentSizeFilter))
+    ? currentSizeFilter
+    : "S";
+
   sizesWrap.innerHTML = listToRender.map(sz => `
     <button
       type="button"
@@ -440,7 +606,7 @@ function openProductModal(index) {
   renderModalSizes(p);
 
   document.getElementById("modalTitle").textContent = p.name;
-  document.getElementById("modalPrice").textContent = "$" + Number(p.price).toFixed(2);
+  document.getElementById("modalPrice").innerHTML = formatPriceHtml(p, true);
   document.getElementById("modalDesc").textContent = p.description;
   document.getElementById("modalColor").textContent = p.color;
 
@@ -484,13 +650,15 @@ function addCurrentProductToCart() {
   const p = catalogProducts[activeProductIndex];
   const st = getStockTypeForSize(p, selectedSize);
   const sizeToSave = isNoSizeProduct(p) ? "" : selectedSize;
+  const unitPrice = getEffectivePrice(p);
 
   const existing = cart.find(
     item =>
       item.name === p.name &&
       item.color === p.color &&
       item.size === sizeToSave &&
-      item.stockType === st
+      item.stockType === st &&
+      item.price === unitPrice
   );
   if (existing) {
     existing.cantidad += modalQuantity;
@@ -499,7 +667,8 @@ function addCurrentProductToCart() {
       name: p.name,
       color: p.color,
       size: sizeToSave,
-      price: p.price,
+      price: unitPrice,
+      isOffer: Boolean(p.isOffer),
       stockType: st,
       cantidad: modalQuantity
     });
@@ -539,11 +708,12 @@ function renderCart() {
     const stockText = getStockLabel(item.stockType);
     const stockClass = item.stockType === "entrega_inmediata" ? "stock-inmediato" : "stock-pedido";
     const tallaTexto = item.size ? ` | Talla: ${item.size}` : "";
+    const ofertaTag = item.isOffer ? " · OFERTA" : "";
     total += subtotal;
     return `
       <div class="cart-item">
         <div>
-          <span class="stock-badge ${stockClass}" style="margin-bottom:4px;">${stockText}</span>
+          <span class="stock-badge ${stockClass}" style="margin-bottom:4px;">${stockText}${ofertaTag}</span>
           <div style="font-weight:500;">${item.name}</div>
           <small style="color:#666;">Color: ${item.color}${tallaTexto} — $${subtotal.toFixed(2)}</small>
           <div>
@@ -574,8 +744,9 @@ function buildShareMessage() {
     const subtotal = item.price * cant;
     const stockText = getStockLabel(item.stockType);
     const sizePart = item.size ? ` Talla ${item.size}` : "";
+    const offerPart = item.isOffer ? " [OFERTA]" : "";
     total += subtotal;
-    return `${item.name} (${item.color})${sizePart} x ${cant} [${stockText}] - $${subtotal.toFixed(2)}`;
+    return `${item.name} (${item.color})${sizePart} x ${cant} [${stockText}]${offerPart} - $${subtotal.toFixed(2)}`;
   });
 
   return `Hola KLO! Quiero pedir:\n${items.join("\n")}\nTOTAL: $${total.toFixed(2)}`;
@@ -680,6 +851,6 @@ function orderViaInstagram() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderCatalog("todos");
+  renderCatalog("todos", "todas");
   loadProductsFromSheet();
 });
