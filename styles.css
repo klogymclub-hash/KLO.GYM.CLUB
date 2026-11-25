@@ -372,24 +372,27 @@ header {
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.28s var(--ease-suave);
+  transition: transform 0.32s var(--ease-suave);
   -webkit-tap-highlight-color: transparent;
-  animation: cardAppear 0.35s var(--ease-suave) both;
+  animation: cardReveal 0.42s var(--ease-suave) both;
 }
 
-@keyframes cardAppear {
-  from {
+@keyframes cardReveal {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(14px) scale(0.985);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .product-card:hover {
   transform: translateY(-4px);
+}
+.product-card:active {
+  transform: scale(0.985);
 }
 
 .product-img-wrap {
@@ -406,10 +409,23 @@ header {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.42s var(--ease-suave);
+  transition: transform 0.48s var(--ease-suave), opacity 0.38s var(--ease-suave);
+  animation: imgSmoothIn 0.45s var(--ease-suave) both;
 }
+
+@keyframes imgSmoothIn {
+  0% {
+    opacity: 0.15;
+    transform: scale(1.045);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .product-card:hover .product-img-wrap img {
-  transform: scale(1.045);
+  transform: scale(1.05);
 }
 
 .offer-badge {
@@ -425,6 +441,18 @@ header {
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
+  animation: badgePop 0.35s var(--ease-suave) both;
+}
+
+@keyframes badgePop {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .product-title {
@@ -473,11 +501,14 @@ header {
   text-transform: uppercase;
   cursor: pointer;
   margin-top: auto;
-  transition: background-color 0.22s var(--ease-suave), color 0.22s var(--ease-suave);
+  transition: background-color 0.24s var(--ease-suave), color 0.24s var(--ease-suave), transform 0.16s var(--ease-suave);
 }
 .product-card:hover .btn-view {
   background: var(--negro);
   color: var(--blanco);
+}
+.btn-view:active {
+  transform: scale(0.97);
 }
 
 /* ETIQUETAS DE STOCK DENTRO DEL MODAL / CARRITO */
@@ -490,7 +521,7 @@ header {
   margin-bottom: 6px;
   width: fit-content;
   font-weight: 600;
-  transition: background-color 0.22s var(--ease-suave), color 0.22s var(--ease-suave);
+  transition: background-color 0.24s var(--ease-suave), color 0.24s var(--ease-suave), transform 0.22s var(--ease-suave);
 }
 .stock-inmediato {
   background: #E8F5E9;
@@ -503,7 +534,7 @@ header {
   border: 1px solid #C9B5AA;
 }
 
-/* MODAL DETALLE DEL PRODUCTO CON ANIMACIÓN ELEGANTE */
+/* MODAL DETALLE DEL PRODUCTO CON ANIMACIÓN PRO EN MÓVIL Y ESCRITORIO */
 .product-modal {
   position: fixed;
   top: 50%;
@@ -519,11 +550,11 @@ header {
   pointer-events: none;
   overflow-y: auto;
   border: 1px solid var(--negro);
-  transform: translate(-50%, -47%) scale(0.975);
+  transform: translate(-50%, -44%) scale(0.95);
   transition:
-    opacity 0.28s var(--ease-suave),
-    transform 0.34s var(--ease-suave),
-    visibility 0.28s var(--ease-suave);
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 .product-modal.active {
@@ -531,6 +562,39 @@ header {
   visibility: visible;
   pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
+}
+
+@media (max-width: 767px) {
+  .product-modal {
+    width: 94%;
+    max-height: 88vh;
+    transform: translate(-50%, -41%) scale(0.96);
+  }
+  .product-modal.active {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.product-modal.active .modal-details > * {
+  animation: modalStaggerIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.product-modal.active .modal-details > *:nth-child(2) { animation-delay: 0.05s; }
+.product-modal.active .modal-details > *:nth-child(3) { animation-delay: 0.1s; }
+.product-modal.active .modal-details > *:nth-child(4) { animation-delay: 0.14s; }
+.product-modal.active .modal-details > *:nth-child(5) { animation-delay: 0.18s; }
+.product-modal.active .modal-details > *:nth-child(6) { animation-delay: 0.22s; }
+.product-modal.active .modal-details > *:nth-child(7) { animation-delay: 0.26s; }
+.product-modal.active .modal-details > *:nth-child(8) { animation-delay: 0.3s; }
+
+@keyframes modalStaggerIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-close {
@@ -548,12 +612,15 @@ header {
   font-size: 16px;
   cursor: pointer;
   z-index: 10;
-  transition: background-color 0.2s var(--ease-suave), color 0.2s var(--ease-suave), transform 0.2s var(--ease-suave);
+  transition: background-color 0.22s var(--ease-suave), color 0.22s var(--ease-suave), transform 0.28s var(--ease-suave);
 }
 .modal-close:hover {
   background: var(--negro);
   color: var(--blanco);
   transform: rotate(90deg);
+}
+.modal-close:active {
+  transform: scale(0.92) rotate(90deg);
 }
 
 .modal-body {
@@ -564,7 +631,7 @@ header {
   .modal-body { grid-template-columns: 1fr 1fr; }
 }
 
-/* CARRUSEL DENTRO DEL MODAL */
+/* CARRUSEL DENTRO DEL MODAL CON TRANSICIÓN DE FOTO SUAVE */
 .modal-gallery {
   position: relative;
   background: var(--gris-piedra);
@@ -576,10 +643,14 @@ header {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.45s var(--ease-suave), opacity 0.25s var(--ease-suave);
+  transition: transform 0.5s var(--ease-suave), opacity 0.32s var(--ease-suave);
 }
-.modal-gallery:hover img {
-  transform: scale(1.02);
+.modal-gallery img.photo-switching {
+  opacity: 0.25;
+  transform: scale(1.03);
+}
+.modal-gallery:hover img:not(.photo-switching) {
+  transform: scale(1.025);
 }
 
 .gallery-thumbs {
@@ -597,14 +668,14 @@ header {
   border: 1px solid var(--negro);
   background: var(--blanco);
   cursor: pointer;
-  transition: transform 0.2s var(--ease-suave), background-color 0.2s var(--ease-suave);
+  transition: transform 0.22s var(--ease-suave), background-color 0.22s var(--ease-suave);
 }
 .thumb-dot:hover {
-  transform: scale(1.2);
+  transform: scale(1.22);
 }
 .thumb-dot.active {
   background: var(--negro);
-  transform: scale(1.15);
+  transform: scale(1.18);
 }
 
 /* INFO DEL MODAL */
@@ -667,10 +738,10 @@ header {
   font-size: 11px;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: background-color 0.2s var(--ease-suave), color 0.2s var(--ease-suave), transform 0.16s var(--ease-suave);
+  transition: background-color 0.22s var(--ease-suave), color 0.22s var(--ease-suave), transform 0.16s var(--ease-suave);
 }
 .size-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 .size-btn.selected {
   background: var(--negro);
@@ -700,10 +771,13 @@ header {
   border: none;
   font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.18s var(--ease-suave);
+  transition: background-color 0.2s var(--ease-suave), transform 0.14s var(--ease-suave);
 }
 .qty-btn:hover {
   background: #F4F4F4;
+}
+.qty-btn:active {
+  transform: scale(0.92);
 }
 .qty-val {
   min-width: 34px;
@@ -728,7 +802,7 @@ header {
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.22s var(--ease-suave), color 0.22s var(--ease-suave), transform 0.18s var(--ease-suave);
+  transition: background-color 0.24s var(--ease-suave), color 0.24s var(--ease-suave), transform 0.2s var(--ease-suave);
 }
 .btn-add-cart:hover {
   background-color: #1A1A1A;
