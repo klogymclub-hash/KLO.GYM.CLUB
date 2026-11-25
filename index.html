@@ -52,6 +52,7 @@
   <section class="hero-wrap">
     <div class="hero-banner" id="heroBanner">
       <img
+        id="heroBannerImg"
         src="img/Klo Logo/klo logo rosado.png"
         alt="KLO GYM CLUB"
         class="hero-banner-img"
@@ -107,9 +108,20 @@
 
   <!-- CATÁLOGO (RENDERIZADO DINÁMICO DESDE products.js + app.js) -->
   <section class="section" id="destacados">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
       <h3 class="section-title" id="catalogTitle" style="margin-bottom:0;">Catálogo</h3>
-      <button onclick="filterCategory('todos')" style="background:none; border:none; font-size:11px; letter-spacing:1.5px; text-decoration:underline; cursor:pointer;">Ver todo</button>
+      <button onclick="resetFilters()" style="background:none; border:none; font-size:11px; letter-spacing:1.5px; text-decoration:underline; cursor:pointer;">Ver todo</button>
+    </div>
+
+    <!-- FILTRO DE TALLAS -->
+    <div class="size-filter-bar" id="sizeFilterBar" aria-label="Filtrar por talla">
+      <span class="size-filter-label">Talla:</span>
+      <button type="button" class="size-filter-btn active" data-size="todas" onclick="filterBySize('todas', this)">Todas</button>
+      <button type="button" class="size-filter-btn" data-size="XS" onclick="filterBySize('XS', this)">XS</button>
+      <button type="button" class="size-filter-btn" data-size="S" onclick="filterBySize('S', this)">S</button>
+      <button type="button" class="size-filter-btn" data-size="M" onclick="filterBySize('M', this)">M</button>
+      <button type="button" class="size-filter-btn" data-size="L" onclick="filterBySize('L', this)">L</button>
+      <button type="button" class="size-filter-btn" data-size="XL" onclick="filterBySize('XL', this)">XL</button>
     </div>
 
     <div class="product-grid" id="productGrid"></div>
