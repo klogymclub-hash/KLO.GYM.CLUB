@@ -1,5 +1,5 @@
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyRbgd97mt0QWbdhq-33tBBs5TeIaLq9n_fttTUle7A79-sYweTqOa3VSTWHMEYmEvV/exec";
-const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v5";
+const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v6";
 
 const FALLBACK_PRODUCTS = typeof products !== "undefined" && Array.isArray(products) ? products : [];
 
@@ -141,15 +141,14 @@ function normalizeSheetItem(raw) {
   const allStandardDash = standardCols.every(sz => dashMap[sz]);
   const allSizesDash = sizeCols.every(sz => dashMap[sz]);
 
-  // Caso 1: tallas estándar en "-" y Unitalla con cantidad > 0 (ej. calcetas unitalla con 5)
-  // Se omite el selector de tallas y se usa el estado de disponibilidad de Unitalla.
+  // Cualquier producto que tenga stock en Unitalla (> 0) y no tenga stock en XS-XL
+  // se trata como Unitalla (oculta XS-XL y muestra su disponibilidad).
   const isOnlyUnitalla =
     hasUnitallaStock &&
-    !hasStandardStock &&
-    (allStandardDash || category.includes("accesor") || category.includes("calcet"));
+    !hasStandardStock;
 
-  // Caso 2: todo en "-" (o sin stock en tallas ni en Unitalla, ej. bolsos / accesorios)
-  // Se omite el selector de tallas y muestra solo disponibilidad.
+  // Todo en "-" (o sin stock en XS-XL ni Unitalla) se trata como accesorio sin tallas
+  // y muestra solo su disponibilidad.
   const noSize =
     !isOnlyUnitalla &&
     (allSizesDash || (!hasStandardStock && !hasUnitallaStock && (category.includes("accesor") || allStandardDash)));
@@ -623,10 +622,20 @@ function renderModalSizes(product) {
   const sizesWrap = document.getElementById("modalSizes");
   if (!sizesWrap) return;
 
-  if (isNoSizeProduct(product) || isUnitallaProduct(product)) {
+  if (isNoSizeProduct(product)) {
     selectedSize = "";
     sizesWrap.innerHTML = "";
     setSizeSectionVisible(false);
+    return;
+  }
+
+  if (isUnitallaProduct(product)) {
+    selectedSize = "Unitalla";
+    sizesWrap.innerHTML = `
+      <button type="button" class="size-btn selected" onclick="selectSize(this, 'Unitalla')">Unitalla</button>
+    `;
+    setSizeSectionVisible(false);
+    sizesWrap.style.display = "";
     return;
   }
 
@@ -731,11 +740,10 @@ function changeModalQty(delta) {
 
 function addCurrentProductToCart() {
   const p = catalogProducts[activeProductIndex];
-  const hideSize = isNoSizeProduct(p) || isUnitallaProduct(p);
   const st = isUnitallaProduct(p)
     ? getStockTypeForSize(p, "Unitalla")
     : getStockTypeForSize(p, selectedSize);
-  const sizeToSave = hideSize ? "" : selectedSize;
+  const sizeToSave = isNoSizeProduct(p) ? "" : selectedSize;
   const unitPrice = getEffectivePrice(p);
 
   const existing = cart.find(
