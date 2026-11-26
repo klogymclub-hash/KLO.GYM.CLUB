@@ -1,5 +1,5 @@
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyRbgd97mt0QWbdhq-33tBBs5TeIaLq9n_fttTUle7A79-sYweTqOa3VSTWHMEYmEvV/exec";
-const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v6";
+const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v7";
 
 const FALLBACK_PRODUCTS = typeof products !== "undefined" && Array.isArray(products) ? products : [];
 
@@ -200,20 +200,100 @@ function normalizeSheetItem(raw) {
   };
 }
 
+function formatCategoryLabel(catSlug) {
+  const clean = String(catSlug || "").trim().toLowerCase();
+  if (!clean) return "";
+  if (clean === "oferta") return "Ofertas";
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function getCategoryImage(catSlug, fallbackProductImg = "") {
+  const clean = String(catSlug || "").trim().toLowerCase();
+  const customImg = normalizeImageUrl(
+    latestRemoteConfig[`cat_${clean}`] || latestRemoteConfig[`categoria_${clean}`]
+  );
+  if (customImg) return customImg;
+
+  const defaultImages = {
+    shorts: "img/241.png",
+    tops: "img/211.png",
+    leggings: "img/217.png",
+    flares: "img/203.png",
+    enterizos: "img/259.png",
+    chaquetas: "img/29.png",
+    accesorios: "img/269.png",
+    joggers: "img/263.png"
+  };
+
+  if (fallbackProductImg) return fallbackProductImg;
+  return defaultImages[clean] || "img/placeholder.png";
+}
+
 function syncDynamicOfferCategory() {
   const offerProducts = Array.isArray(catalogProducts)
     ? catalogProducts.filter(p => Boolean(p && p.isOffer))
     : [];
   const hasOffers = offerProducts.length > 0;
 
+  const seenCategories = new Set();
+  const dynamicCategories = [];
+  const firstImageByCat = {};
+
+  (Array.isArray(catalogProducts) ? catalogProducts : []).forEach(prod => {
+    const cat = String((prod && prod.category) || "").trim().toLowerCase();
+    if (!cat || cat === "todos" || cat === "oferta") return;
+    if (!firstImageByCat[cat] && prod.images && prod.images[0]) {
+      firstImageByCat[cat] = prod.images[0];
+    }
+    if (!seenCategories.has(cat)) {
+      seenCategories.add(cat);
+      dynamicCategories.push(cat);
+    }
+  });
+
+  const baseOrder = ["shorts", "tops", "leggings", "flares", "enterizos", "chaquetas", "accesorios", "joggers"];
+  const extraCategories = dynamicCategories.filter(c => !baseOrder.includes(c));
+  const finalCategories = [...baseOrder, ...extraCategories];
+
   const catGrid = document.querySelector(".cat-grid");
   const menuList = document.querySelector("#menuDrawer > div");
 
-  if (hasOffers) {
-    const customOfferImg = normalizeImageUrl(latestRemoteConfig.cat_oferta || latestRemoteConfig.categoria_oferta);
-    const offerThumb = customOfferImg || (offerProducts[0].images && offerProducts[0].images[0]) || "img/211.png";
+  if (catGrid) {
+    catGrid.querySelectorAll(".cat-box").forEach(box => {
+      const catAttr = box.dataset.category;
+      if (catAttr && catAttr !== "oferta" && !finalCategories.includes(catAttr)) {
+        box.remove();
+      }
+    });
 
-    if (catGrid) {
+    finalCategories.forEach(cat => {
+      let box = catGrid.querySelector(`.cat-box[data-category="${cat}"]`);
+      const imgSrc = getCategoryImage(cat, firstImageByCat[cat] || "");
+      const label = formatCategoryLabel(cat);
+
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "cat-box";
+        box.dataset.category = cat;
+        box.onclick = function () {
+          filterCategory(cat, this);
+        };
+        box.innerHTML = `<img src="${imgSrc}" alt="${label}" loading="lazy"><span>${label}</span>`;
+        catGrid.appendChild(box);
+      } else {
+        const imgEl = box.querySelector("img");
+        const spanEl = box.querySelector("span");
+        if (imgEl && imgSrc) imgEl.src = imgSrc;
+        if (spanEl) spanEl.textContent = label;
+      }
+      box.classList.toggle("active-cat", currentCategoryFilter === cat);
+    });
+
+    if (hasOffers) {
+      const offerThumb = getCategoryImage(
+        "oferta",
+        (offerProducts[0].images && offerProducts[0].images[0]) || "img/211.png"
+      );
       let offerBox = catGrid.querySelector('.cat-box[data-category="oferta"]');
       if (!offerBox) {
         offerBox = document.createElement("div");
@@ -229,41 +309,55 @@ function syncDynamicOfferCategory() {
         if (imgEl && offerThumb) imgEl.src = offerThumb;
       }
       offerBox.classList.toggle("active-cat", currentCategoryFilter === "oferta");
-    }
-
-    if (menuList) {
-      let offerLink = menuList.querySelector('a[data-nav-category="oferta"]');
-      if (!offerLink) {
-        offerLink = document.createElement("a");
-        offerLink.href = "#destacados";
-        offerLink.dataset.navCategory = "oferta";
-        offerLink.textContent = "Ofertas";
-        offerLink.onclick = function () {
-          filterCategory("oferta");
-          closeAll();
-        };
-        const firstNavLink = menuList.querySelector("a");
-        if (firstNavLink && firstNavLink.nextSibling) {
-          menuList.insertBefore(offerLink, firstNavLink.nextSibling);
-        } else {
-          menuList.appendChild(offerLink);
-        }
-      }
-    }
-  } else {
-    if (catGrid) {
+    } else {
       const offerBox = catGrid.querySelector('.cat-box[data-category="oferta"]');
       if (offerBox) offerBox.remove();
     }
-    if (menuList) {
-      const offerLink = menuList.querySelector('a[data-nav-category="oferta"]');
-      if (offerLink) offerLink.remove();
+  }
+
+  if (menuList) {
+    const footerP = menuList.querySelector("p");
+    const headerDiv = menuList.querySelector("div");
+
+    menuList.querySelectorAll("a").forEach(a => a.remove());
+
+    const makeNavLink = (catValue, textLabel) => {
+      const link = document.createElement("a");
+      link.href = "#destacados";
+      link.dataset.navCategory = catValue;
+      link.textContent = textLabel;
+      link.onclick = function () {
+        filterCategory(catValue);
+        closeAll();
+      };
+      return link;
+    };
+
+    const insertBeforeFooter = (el) => {
+      if (footerP) {
+        menuList.insertBefore(el, footerP);
+      } else {
+        menuList.appendChild(el);
+      }
+    };
+
+    insertBeforeFooter(makeNavLink("todos", "Todo el Catálogo"));
+    if (hasOffers) {
+      insertBeforeFooter(makeNavLink("oferta", "Ofertas"));
     }
-    if (currentCategoryFilter === "oferta") {
-      currentCategoryFilter = "todos";
-      const title = document.getElementById("catalogTitle");
-      if (title) title.textContent = "Catálogo";
+    finalCategories.forEach(cat => {
+      insertBeforeFooter(makeNavLink(cat, formatCategoryLabel(cat)));
+    });
+
+    if (headerDiv && headerDiv.parentNode !== menuList) {
+      menuList.prepend(headerDiv);
     }
+  }
+
+  if (!hasOffers && currentCategoryFilter === "oferta") {
+    currentCategoryFilter = "todos";
+    const title = document.getElementById("catalogTitle");
+    if (title) title.textContent = "Catálogo";
   }
 }
 
@@ -271,16 +365,7 @@ function applyRemoteMediaConfig(config) {
   if (!config || typeof config !== "object") return;
   latestRemoteConfig = config;
 
-  const categories = ["oferta", "shorts", "tops", "leggings", "flares", "enterizos", "chaquetas", "accesorios", "joggers"];
-  categories.forEach(cat => {
-    const rawUrl = config[`cat_${cat}`] || config[`categoria_${cat}`];
-    const cleanUrl = normalizeImageUrl(rawUrl);
-    if (!cleanUrl) return;
-    const boxImg = document.querySelector(`.cat-box[data-category="${cat}"] img`);
-    if (boxImg) {
-      boxImg.src = cleanUrl;
-    }
-  });
+  syncDynamicOfferCategory();
 
   const bannerCandidates = [
     config.banner_imagen,
