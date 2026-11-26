@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KLO GYM CLUB - Catálogo </title>
-  <link rel="icon" type="image/png" href="img/klo logo rosado.png" />
-<link rel="apple-touch-icon" href="img/klo logo rosado.png" />
+  <title>KLO GYM CLUB - Catálogo</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="img/klo%20logo%20rosado.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="img/klo%20logo%20rosado.png" />
+  <link rel="shortcut icon" href="img/klo%20logo%20rosado.png" />
+  <link rel="apple-touch-icon" href="img/klo%20logo%20rosado.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -14,8 +16,12 @@
   <header>
     <button class="icon-btn" onclick="openMenu()" aria-label="Menú">☰</button>
     <div class="logo-container">
-      <img src="img/klo logo rosado-.png" alt="KLO GYM CLUB" onerror="this.style.display='none'; document.getElementById('fallback-header').style.display='block';">
-      <span id="fallback-header" style="display:none; font-size:18px; letter-spacing:4px; color:var(--blush-beige);"></span>
+      <img
+        src="img/klo%20logo%20rosado-.png"
+        alt="KLO GYM CLUB"
+        onerror="this.style.display='none'; document.getElementById('fallback-header').style.display='block';"
+      />
+      <span id="fallback-header" style="display:none; font-size:18px; letter-spacing:4px; color:var(--blush-beige);">KLO GYM CLUB</span>
     </div>
     <button class="icon-btn" onclick="openCart()" aria-label="Carrito de compras">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -55,13 +61,13 @@
     <div class="hero-banner" id="heroBanner">
       <img
         id="heroBannerImg"
-        src="img/Klo Logo/klo logo rosado.png"
+        src="img/Klo%20Logo/klo%20logo%20rosado.png"
         alt="KLO GYM CLUB"
         class="hero-banner-img"
         onerror="this.style.display='none'; document.getElementById('heroBanner').classList.add('banner-missing');"
-      >
+      />
       <div class="hero-banner-fallback">
-        Revisa que <strong>img/banner.png</strong> exista en tu carpeta <strong>img/</strong>
+        Revisa que <strong>img/Klo Logo/klo logo rosado.png</strong> exista en tu carpeta <strong>img/</strong>
       </div>
       <a href="#destacados" class="hero-cta-link">
         <button type="button" class="btn-banner-white">Ver Catálogo</button>
@@ -74,35 +80,35 @@
     <h3 class="section-title">Categorías</h3>
     <div class="cat-grid">
       <div class="cat-box" data-category="shorts" onclick="filterCategory('shorts', this)">
-        <img src="img/241.png" alt="Shorts" loading="lazy">
+        <img src="img/241.png" alt="Shorts" loading="lazy" />
         <span>Shorts</span>
       </div>
       <div class="cat-box" data-category="tops" onclick="filterCategory('tops', this)">
-        <img src="img/211.png" alt="Tops" loading="lazy">
+        <img src="img/211.png" alt="Tops" loading="lazy" />
         <span>Tops</span>
       </div>
       <div class="cat-box" data-category="leggings" onclick="filterCategory('leggings', this)">
-        <img src="img/217.png" alt="Leggings" loading="lazy">
+        <img src="img/217.png" alt="Leggings" loading="lazy" />
         <span>Leggings</span>
       </div>
       <div class="cat-box" data-category="flares" onclick="filterCategory('flares', this)">
-        <img src="img/203.png" alt="Flares" loading="lazy">
+        <img src="img/203.png" alt="Flares" loading="lazy" />
         <span>Flares</span>
       </div>
       <div class="cat-box" data-category="enterizos" onclick="filterCategory('enterizos', this)">
-        <img src="img/259.png" alt="Enterizos" loading="lazy">
+        <img src="img/259.png" alt="Enterizos" loading="lazy" />
         <span>Enterizos</span>
       </div>
       <div class="cat-box" data-category="chaquetas" onclick="filterCategory('chaquetas', this)">
-        <img src="img/29.png" alt="Chaquetas" loading="lazy">
+        <img src="img/29.png" alt="Chaquetas" loading="lazy" />
         <span>Chaquetas</span>
       </div>
       <div class="cat-box" data-category="accesorios" onclick="filterCategory('accesorios', this)">
-        <img src="img/269.png" alt="Accesorios" loading="lazy">
+        <img src="img/269.png" alt="Accesorios" loading="lazy" />
         <span>Accesorios</span>
       </div>
       <div class="cat-box" data-category="joggers" onclick="filterCategory('joggers', this)">
-        <img src="img/263.png" alt="Joggers" loading="lazy">
+        <img src="img/263.png" alt="Joggers" loading="lazy" />
         <span>Joggers</span>
       </div>
     </div>
@@ -133,7 +139,7 @@
     <button class="modal-close" onclick="closeAll()">✕</button>
     <div class="modal-body">
       <div class="modal-gallery">
-        <img id="modalImg" src="" alt="Vista del producto">
+        <img id="modalImg" src="" alt="Vista del producto" />
         <div class="gallery-thumbs" id="modalThumbs"></div>
       </div>
 
