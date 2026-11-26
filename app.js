@@ -1,5 +1,5 @@
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyRbgd97mt0QWbdhq-33tBBs5TeIaLq9n_fttTUle7A79-sYweTqOa3VSTWHMEYmEvV/exec";
-const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v4";
+const SHEETS_CACHE_KEY = "klo_gym_club_sheet_items_v5";
 
 const FALLBACK_PRODUCTS = typeof products !== "undefined" && Array.isArray(products) ? products : [];
 
@@ -119,11 +119,13 @@ function normalizeSheetItem(raw) {
   const sizeCols = ["XS", "S", "M", "L", "XL", "Unitalla"];
   const stock = {};
   const sizeStock = {};
+  const dashMap = {};
 
   for (const sz of sizeCols) {
     const rawVal = raw.stock && raw.stock[sz] !== undefined ? raw.stock[sz] : raw[sz];
     const parsed = parseCellValue(rawVal);
     stock[sz] = parsed.qty;
+    dashMap[sz] = parsed.isDash;
     sizeStock[sz] =
       raw.sizeStock && (raw.sizeStock[sz] === "entrega_inmediata" || raw.sizeStock[sz] === "bajo_pedido")
         ? raw.sizeStock[sz]
@@ -136,31 +138,26 @@ function normalizeSheetItem(raw) {
   const positiveStandardSizes = standardCols.filter(sz => stock[sz] > 0);
   const hasStandardStock = positiveStandardSizes.length > 0;
   const hasUnitallaStock = stock.Unitalla > 0;
+  const allStandardDash = standardCols.every(sz => dashMap[sz]);
+  const allSizesDash = sizeCols.every(sz => dashMap[sz]);
 
-  const isAccessoryCategory =
-    category.includes("accesor") ||
-    category.includes("bolso") ||
-    category.includes("mochila") ||
-    category.includes("gorra") ||
-    category.includes("calcet");
-
+  // Caso 1: tallas estándar en "-" y Unitalla con cantidad > 0 (ej. calcetas unitalla con 5)
+  // Se omite el selector de tallas y se usa el estado de disponibilidad de Unitalla.
   const isOnlyUnitalla =
-    !isAccessoryCategory &&
     hasUnitallaStock &&
-    !hasStandardStock;
+    !hasStandardStock &&
+    (allStandardDash || category.includes("accesor") || category.includes("calcet"));
 
+  // Caso 2: todo en "-" (o sin stock en tallas ni en Unitalla, ej. bolsos / accesorios)
+  // Se omite el selector de tallas y muestra solo disponibilidad.
   const noSize =
     !isOnlyUnitalla &&
-    isAccessoryCategory &&
-    !hasStandardStock &&
-    !hasUnitallaStock;
+    (allSizesDash || (!hasStandardStock && !hasUnitallaStock && (category.includes("accesor") || allStandardDash)));
 
-  const anyPositiveStock = Object.values(stock).some(v => v > 0);
   const rawDisponibilidad = getRawDisponibilidad(raw);
   const dispRaw = String(rawDisponibilidad ?? "").trim().toLowerCase();
 
-  let noSizeStockType = anyPositiveStock ? "entrega_inmediata" : "bajo_pedido";
-
+  let noSizeStockType = "bajo_pedido";
   if (
     dispRaw.includes("inmediat") ||
     dispRaw.includes("entrega") ||
@@ -181,7 +178,7 @@ function normalizeSheetItem(raw) {
     noSizeStockType = "bajo_pedido";
   }
 
-  if (isOnlyUnitalla && !dispRaw) {
+  if (isOnlyUnitalla) {
     sizeStock.Unitalla = stock.Unitalla > 0 ? "entrega_inmediata" : "bajo_pedido";
   }
 
@@ -402,7 +399,7 @@ function hasAnyImmediateStock(product) {
 function matchesSizeFilter(product, sizeFilter) {
   if (!sizeFilter || sizeFilter === "todas") return true;
   if (isNoSizeProduct(product)) return true;
-  if (isUnitallaProduct(product)) return sizeFilter === "M" || sizeFilter === "S";
+  if (isUnitallaProduct(product)) return true;
   return Object.prototype.hasOwnProperty.call(product.sizeStock || {}, sizeFilter);
 }
 
@@ -482,6 +479,7 @@ function renderCatalog(filterCat = currentCategoryFilter, sizeFilter = currentSi
 
   grid.innerHTML = list.map(({ product, index }) => {
     const badgeHtml = product.isOffer ? `<span class="offer-badge">Oferta</span>` : "";
+    const hideSizesCard = isNoSizeProduct(product) || isUnitallaProduct(product);
     return `
       <div class="product-card" data-category="${product.category}" onclick="openProductModal(${index})">
         <div class="product-img-wrap">
@@ -491,7 +489,7 @@ function renderCatalog(filterCat = currentCategoryFilter, sizeFilter = currentSi
         <div class="product-title">${product.name}</div>
         <div class="product-color">Color: ${product.color}</div>
         <div class="product-price">${formatPriceHtml(product, false)}</div>
-        <button type="button" class="btn-view">${isNoSizeProduct(product) ? "Ver Producto" : "Seleccionar Talla"}</button>
+        <button type="button" class="btn-view">${hideSizesCard ? "Ver Producto" : "Seleccionar Talla"}</button>
       </div>
     `;
   }).join("");
@@ -625,20 +623,10 @@ function renderModalSizes(product) {
   const sizesWrap = document.getElementById("modalSizes");
   if (!sizesWrap) return;
 
-  if (isNoSizeProduct(product)) {
+  if (isNoSizeProduct(product) || isUnitallaProduct(product)) {
     selectedSize = "";
     sizesWrap.innerHTML = "";
     setSizeSectionVisible(false);
-    return;
-  }
-
-  if (isUnitallaProduct(product)) {
-    selectedSize = "Unitalla";
-    sizesWrap.innerHTML = `
-      <button type="button" class="size-btn selected" onclick="selectSize(this, 'Unitalla')">Unitalla</button>
-    `;
-    setSizeSectionVisible(false);
-    sizesWrap.style.display = "";
     return;
   }
 
@@ -659,17 +647,12 @@ function renderModalSizes(product) {
 
 function updateModalStockBadge() {
   const p = catalogProducts[activeProductIndex];
-  const st = getStockTypeForSize(p, selectedSize);
+  const st = isUnitallaProduct(p)
+    ? getStockTypeForSize(p, "Unitalla")
+    : getStockTypeForSize(p, selectedSize);
   const badge = document.getElementById("modalStockBadge");
 
-  if (isNoSizeProduct(p)) {
-    badge.textContent = getStockLabel(st);
-  } else if (isUnitallaProduct(p)) {
-    badge.textContent = "Unitalla: " + getStockLabel(st);
-  } else {
-    badge.textContent = "Talla " + selectedSize + ": " + getStockLabel(st);
-  }
-
+  badge.textContent = getStockLabel(st);
   badge.className = "stock-badge " + (st === "entrega_inmediata" ? "stock-inmediato" : "stock-pedido");
 }
 
@@ -748,8 +731,11 @@ function changeModalQty(delta) {
 
 function addCurrentProductToCart() {
   const p = catalogProducts[activeProductIndex];
-  const st = getStockTypeForSize(p, selectedSize);
-  const sizeToSave = isNoSizeProduct(p) ? "" : selectedSize;
+  const hideSize = isNoSizeProduct(p) || isUnitallaProduct(p);
+  const st = isUnitallaProduct(p)
+    ? getStockTypeForSize(p, "Unitalla")
+    : getStockTypeForSize(p, selectedSize);
+  const sizeToSave = hideSize ? "" : selectedSize;
   const unitPrice = getEffectivePrice(p);
 
   const existing = cart.find(
